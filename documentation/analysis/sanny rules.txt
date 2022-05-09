@@ -1,0 +1,21 @@
+// Bisma Mods
+// Project SannyJS Compiler 2022
+
+- sanny opcode itu reverse, [01 00] -> [00 01] wait
+
+//0000: wait [int]
+- data int8 1hex, 01 00 [04] [7F] -> max 127
+- data int16 2hex, 01 00 [05] [FF 7F] -> max 32767
+- data int32 4hex, 01 00 [01] [00 CA 9A 3B] -> max 2147483647
+- data unkwon 4hex, 01 00 [06] [27 D7 58 62] -> max unlimited
+
+//000F: 1@ -= [float]
+- data float 4hex, 0F 00 03 01 00 [06] [00 00 8B 42] -> max unkwon
+
+//03A4: script_name [short_str]
+- data short_str zero_end, A4 03 [09] [4C 55 42 49 4C 45 4B] [00]
+
+//00A0: store_actor [glo] position_to [loc1, loc2, loc3]
+- var global 2hex,    A0 00 [02] [0C 00]  03   01 00   03   02 00   03   03 00  -> $3*4
+- var local_1~3 2hex, A0 00  02   0C 00  [03] [01 00] [03] [02 00] [03] [03 00] -> 1@ 2@ 3@
+- var array_glo 2hex, A0 00 [07] [20 03] [02] [00 0A] [00] 03 01 00 03 02 00 03 03 00 -> $200*4(2@,10i)

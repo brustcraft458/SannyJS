@@ -1,0 +1,23 @@
+// Bisma Mods
+// Project SannyJS Compiler 2022
+
+// Opcode
+[01 00] 04 7F -> swap 0001:
+
+// Data Type
+01 00 [04] [7F] -> int8 1hex, max 127
+01 00 [05] [FF 7F] -> int16 2hex, max 32767
+01 00 [01] [00 CA 9A 3B] -> int32 4hex, max 2147483647
+01 00 [06] [27 D7 58 62] -> unkwon 4hex, max unlimited
+0F 00 03 01 00 [06] [00 00 8B 42] -> float 4hex, max unkwon
+AA 05 0B 01 00 [09] [4C 55 42 49 4C 45 4B] [00] -> short string, end_zero
+
+// Variable Types 
+06 00 [03] [01 00] 04 45 -> local_int 2hex
+05 00 [02] [0C 00] 06 00 00 00 3F -> global_float*4 2hex
+AA 05 [0B] [05 00] 09 4C 55 42 49 4C 45 4B 00 -> local_short_str 2hex
+
+// Array Container, 20@(7@,232i)
+85 00 03 05 00 [08] [14 00]  07 00   E8   00 -> Array_header
+85 00 03 05 00  08   14 00  [07 00]  E8   00 -> Array_index
+85 00 03 05 00 [08]  14 00   07 00  [E8] [00] -> Data_type(08i 08f 0Ds), Array_size uint8, Array_type(00i 01f 02s)
