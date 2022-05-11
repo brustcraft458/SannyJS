@@ -18,6 +18,7 @@ fel.forEach(fel2 => {
     parseop(fel2)
 });
 
+// print sascm
 console.log(cleo_opc)
 console.log(opc_array)
 console.log(opc_string)
@@ -26,16 +27,27 @@ function parseop(cy) {
     var pos = 0
     if (opc_true == true) {
         var cyt = cy.split(',')
+        if (matchstr(cyt[0], ';') != -1) {return}
+        if (cyt[0] === '') {return}
         var cyt2 = cyt[0]
         var cyt2 = cyt2.split(`=`)
         var cuyop = cyt2[0]
         cleo_opc.push(cuyop.toUpperCase())
-        opc_array.push(cyt2[1])
+        opc_array.push(parseInt(cyt2[1]))
         opc_string.push(cyt[1])
     } else {
-        cyb = cy.split('')
-        if (cyb[0] == '[' && cyb[1] == 'O' && cyb[2] == 'P' && cyb[3] == 'C' && cyb[4] == 'O' && cyb[5] == 'D' && cyb[6] == 'E' && cyb[7] == 'S' && cyb[8] == ']') {
+        if (cy.search(`[[` + 'OPCODES' + `]]`) == 7) {
             opc_true = true
         }
     }
+}
+
+function matchstr(mactb, mactb2) {
+    mactb = mactb.match(mactb2)
+    if (mactb == null) {
+        mactb = -1
+    } else {
+        mactb = mactb.index
+    }
+    return mactb
 }
