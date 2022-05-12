@@ -19,12 +19,12 @@ feb = feb.split('\r\n')
 // parsing sascm
 fel.forEach(fel2 => {
     parseop(fel2)
-});
+})
 
 // compiling cleo
 feb.forEach(feb2 => {
     compilecs(feb2)
-});
+})
 
 function parseop(cy) {
     var pos = 0
@@ -39,7 +39,7 @@ function parseop(cy) {
         opc_array.push(parseInt(cyt2[1]))
         opc_string.push(cyt[1])
     } else {
-        if (cy.search(`[[` + 'OPCODES' + `]]`) == 7) {
+        if (matchstr(cy, '[OPCODES]') == 9) {
             opc_true = true
         }
     }
@@ -50,7 +50,7 @@ function compilecs(txtcs) {
     txtcs.forEach(tc => {
         // print optype
         console.log(tc + ' -> ' + checktype(tc))
-    });
+    })
 }
 
 function checktype(cmx) {
@@ -97,21 +97,28 @@ function checktype(cmx) {
     }
 
     // number
-    if (!isNaN(parseFloat(cmxs)) == true && matchstr(cmxs, '[.]') == 1) {
-        return 'flt'
+    if (!isNaN(parseFloat(cmxs)) == true) {
+        if (matchstr(cmxs, '.') == 0) {
+            return 'flt'
+        }
     }
     if (!isNaN(parseInt(cmxs)) == true) {
-        return 'int'
+        if (matchstr(cmxs, '.') == -1) {
+            return 'int'
+        }
     }
     return 'nul'
 }
 
 function matchstr(mactb, mactb2) {
-    mactb = mactb.match(mactb2)
-    if (mactb == null) {
-        mactb = -1
-    } else {
-        mactb = mactb.index
+    mactb = mactb.split('')
+    mactb2 = mactb2.split('')
+    var mach = -1
+    for (let ho = 0; ho < mactb.length; ho++) {
+        for (let ho2 = 0; ho2 < mactb2.length; ho2++) {
+            var hoc = ho + ho2
+            if (mactb[hoc] == mactb2[ho2]) {mach++}
+        }
     }
-    return mactb
+    return mach
 }
