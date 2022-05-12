@@ -1,0 +1,4 @@
+0007: 7@ = 20.5
+000A: 3@ += 3000 
+00A0: store_actor $PLAYER_ACTOR position_to 7@ 8@ 9@
+
