@@ -1,4 +1,7 @@
-0007: 7@ = 20.5
-000A: 3@ += 3000 
-00A0: store_actor $PLAYER_ACTOR position_to 7@ 8@ 9@
-
+0000: nop
+0001: wait 1000
+000A: 3@ += 2 
+000B: 6@ += 0.1
+0826: enable_hud 0 
+0001: wait 1000
+004E: terminate_this_script 
