@@ -4,7 +4,7 @@
 // Opcode
 [01 00] 04 7F -> swap 0001:
 
-// Data Type
+// Data Types
 01 00 [04] [7F] -> int8 1hex, max 127
 01 00 [05] [FF 7F] -> int16 2hex, max 32767
 01 00 [01] [00 CA 9A 3B] -> int32 4hex, max 2147483647
@@ -21,3 +21,8 @@ AA 05 [0B] [05 00] 09 4C 55 42 49 4C 45 4B 00 -> local_short_str 2hex
 85 00 03 05 00 [08] [14 00]  07 00   E8   00 -> Array_header
 85 00 03 05 00  08   14 00  [07 00]  E8   00 -> Array_index
 85 00 03 05 00 [08]  14 00   07 00  [E8] [00] -> Data_type(08i 08f 0Ds), Array_size uint8, Array_type(00i 01f 02s)
+
+// Jump & Condition
+02 00 [01] [F6 FF FF FF] -> int32 4hex
+D6 00  04  [00] -> if_num, max 7
+D6 00  04  [15] -> if_or+20, max 27
