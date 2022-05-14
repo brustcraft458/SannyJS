@@ -4,9 +4,11 @@ const fs = require('fs')
 const { exit } = require('process')
 var hxcleo = Buffer.alloc(200000, '00', 'hex')
 var hxcleob = 0
-console.log('Load sascm.ini & script tes.txt...')
-var fel = fs.readFileSync("sannydata/sa_mobile/SASCM.ini", 'ascii')
+
+// Load Script
+console.log('Load script tes.txt...')
 var feb = fs.readFileSync("compile/tes.txt", 'ascii')
+feb = feb.split('\r\n')
 
 // opcode array
 var cleo_opc = []
@@ -14,20 +16,100 @@ var opc_array = []
 var opc_string = []
 var opc_true = false
 
-//split newline
-fel = fel.split('\r\n')
-feb = feb.split('\r\n')
+// label array
+var cleo_labl = []
+var labl_string = []
+
+// Custom var names array
+var cleo_csvar = []
+var csvar_string = []
+
+// Opcode keywords array
+var cleo_keyop = []
+var keyop_string = []
+
+// Recalculating Jump Array
+var cleo_lajmp = []
+var lajmp_pos = []
+
+// Recalculating Condition Array
+var cleo_cond = []
+var cond_string = []
+var cond_pos = []
+var cond_num = -1
+var last_cond = -1
+var last_condty = ''
 
 // parsing sascm
+console.log('Load SASCM.ini...')
+var fel = fs.readFileSync("sannydata/sa_mobile/SASCM.ini", 'ascii')
+fel = fel.split('\r\n')
 fel.forEach(fel2 => {
     parseop(fel2)
 })
 
-console.log('Compiling Script...')
+// parsing CustomVariables
+console.log('Load CustomVariables.ini...')
+var fel = fs.readFileSync("sannydata/sa_mobile/CustomVariables.ini", 'ascii')
+fel = fel.split('\r\n')
+fel.forEach(fel2 => {
+    parsecusvar(fel2)
+})
+
+// parsing keywords
+console.log('Load keywords.txt...')
+var fel = fs.readFileSync("sannydata/sa_mobile/keywords.txt", 'ascii')
+fel = fel.split('\r\n')
+fel.forEach(fel2 => {
+    parsekeyop(fel2)
+})
+
 // compiling cleo
+console.log('Compiling Script...')
 feb.forEach(feb2 => {
     compilecs(feb2)
 })
+
+// ReCalculating jump
+for (let adj = 0; adj < cleo_lajmp.length; adj++) {
+    var adj2 = cleo_lajmp[adj]
+    var adj3 = cleo_labl[labl_string.indexOf(adj2.toUpperCase())]
+    if (typeof adj3 == 'undefined') {
+        console.log('Compile Error: Label not found at @' + adj2)
+        exit()
+    }
+    adj3 *= -1
+    hxcleo.writeInt32LE(adj3, lajmp_pos[adj])
+}
+
+// ReCaltulating condition
+for (let adj = 0; adj < cleo_cond.length; adj++) {
+    var adj2 = cleo_cond[adj]
+    adj2--
+    var adj3 = cond_pos[adj]
+    adj3--
+    if (adj2 > 7) {
+        console.log('Compile Error: Condition Max 8')
+        exit()
+    }
+    if (adj2 > 1 && cond_string[adj] === '') {
+        console.log('Compile Error: Single Condition, to much opcode')
+        exit()
+    }
+    switch (cond_string[adj]) {
+        case 'or':
+            adj2 += 20
+            hxcleo.writeInt8(adj2, adj3)
+        break;
+ 
+        case 'and':
+            hxcleo.writeInt8(adj2, adj3)
+        break;
+
+        default:
+        break;
+    }
+}
 
 // copy & limiting buf
 var hxsave = Buffer.alloc(hxcleob)
@@ -48,7 +130,8 @@ function parseop(cy) {
         var cyt2 = cyt[0]
         var cyt2 = cyt2.split(`=`)
         var cuyop = cyt2[0]
-        cleo_opc.push(cuyop.toUpperCase())
+        cuyop = cuyop.toUpperCase()
+        cleo_opc.push(cuyop)
         opc_array.push(parseInt(cyt2[1]))
         opc_string.push(cyt[1])
     } else {
@@ -58,42 +141,100 @@ function parseop(cy) {
     }
 }
 
+function parsecusvar(cy) {
+    if (cy === '') {return}
+    var cyt = cy.split(' ')
+    if (cyt[0] == ';') {return}
+    cyt = cy.split(`=`)
+    if (typeof cyt[1] == 'undefined') {return}
+    if (typeof parseInt(cyt[0]) == 'number' && typeof cyt[1] == 'string') {
+        cleo_csvar.push(parseInt(cyt[0]))
+        var cyt2 = cyt[1]
+        csvar_string.push(cyt2.toUpperCase())    
+    }
+}
+
+function parsekeyop(cy) {
+    if (cy === '') {return}
+    var cyt = cy.split(' ')
+    if (cyt[0] == ';') {return}
+    cyt = cy.split(`=`)
+    if (typeof cyt[1] == 'undefined') {return}
+    if (typeof cyt[0] == 'string' && typeof cyt[1] == 'string') {
+        var cyt2 = cyt[0]
+        cleo_keyop.push(cyt2.toUpperCase())
+        cyt2 = cyt[1]
+        keyop_string.push(cyt2.toLowerCase())
+    }
+}
+
+
 function compilecs(txtcs) {
     if (txtcs === '') {return}
     var bvnum = 0
     var bvcleo = []
     var bvcleoty = []
     var bvop = -1
+    var skipln = 0
     var txtcs2 = txtcs
+    var iscondop = false
     txtcs = txtcs.split(' ')
     txtcs.forEach(tc => {
-        // print optype
         var bv = checktype(tc)
         if (bv != 'nul') {
+            if (bv == 'skip') {
+                skipln = 1
+            }
             if (bv == 'op') {
                 bvop = cleo_opc.indexOf(tc.replace(`:`, ''))
                 bvcleo.push(tc)
                 bvcleoty.push(bv)
+                skipln = 0
             } else {
-                bvcleo.push(tc)
-                bvcleoty.push(bv)
-                bvnum++
+                if (skipln == 0) {
+                    bvcleo.push(tc)
+                    bvcleoty.push(bv)
+                    bvnum++
+                    if (bv == 'labl') {
+                        bvop = -2
+                        skipln = 1
+                    }
+                }
+            }
+        } else {
+            tcb = tc.toLowerCase()
+            if (iscondop == true) {
+                if(tcb == 'and' || tcb == 'or') {
+                    bv = 'condt'
+                    bvcleo.push(tcb)
+                    bvcleoty.push(bv)
+                    bvnum++
+                    iscondop = false    
+                } else {
+                    iscondop = false
+                }
+            } else {
+                if (tcb == 'if') {iscondop = true}
             }
         }
     })
 
     // error checking
-    if (bvop == -1) {
-        console.log('Compile Error: Opcode not found at ' + txtcs[0])
-        exit()
-    }
-    if (bvnum > opc_array[bvop]) {
-        console.log('Compile Error: to much params at ' + txtcs2)
-        exit()
-    }
-    if (opc_array[bvop] > bvnum) {
-        console.log('Compile Error: Not enough params at ' + txtcs2)
-        exit()
+    if (skipln == 0) {
+        if (bvop == -1) {
+            console.log('Compile Error: Opcode not found at ' + txtcs[0])
+            exit()
+        }
+        if (txtcs[0] != '00D6:' && txtcs[0] != '80D6:') {
+            if (bvnum > opc_array[bvop]) {
+                console.log('Compile Error: to much params at ' + txtcs2)
+                exit()
+            }
+            if (opc_array[bvop] > bvnum) {
+                console.log('Compile Error: Not enough params at ' + txtcs2)
+                exit()
+            }
+        }
     }
 
     //compile procces
@@ -101,14 +242,64 @@ function compilecs(txtcs) {
 
     for (let gj = 0; gj < bvcleoty.length; gj++) {
         if (bvtrue == false) {
+            if (bvcleoty[gj] == 'labl') {
+                var bvsult = bvcleo[gj]
+                bvsult = bvsult.split(`:`)
+                bvsult = bvsult[1]
+                cleo_labl.push(hxcleob)
+                labl_string.push(bvsult.toUpperCase())
+            }
             if (bvcleoty[gj] == 'op') {
+                if (last_cond != -1) {
+                    cond_num++
+                }
                 bvtrue = true
                 var bvsult = swapthis(cleo_opc[bvop])
                 hxcleo.write(bvsult, hxcleob, 'hex')
                 hxcleob += 2
+
+                // condition
+                if (bvsult == 'D600') {
+                    hxcleo.write('04 00', hxcleob, 'hex')
+                    hxcleob += 2
+                    last_cond = hxcleob
+                } else {
+                    if (bvsult == '4D00') {
+                        if (last_cond != -1) {
+                            cleo_cond.push(cond_num)
+                            cond_pos.push(last_cond)
+                            cond_string.push(last_condty)
+                        }
+                        last_cond = -1
+                        cond_num = -1
+                        last_condty = ''
+                    }
+                }
             }
         } else {
             switch (bvcleoty[gj]) {
+                
+                // condition type
+                case 'condt':
+                    if (last_cond != -1) {
+                        last_condty = bvcleo[gj]
+                    }
+                break;
+
+                // label
+                case 'labl_jmp':
+                    var bvsult = bvcleo[gj]
+                    bvsult = bvsult.split(`@`)
+                    bvsult = bvsult[1]
+                    hxcleo.write('01', hxcleob, 'hex')
+                    hxcleob += 1
+                    cleo_lajmp.push(bvsult)
+                    lajmp_pos.push(hxcleob) 
+                    hxcleo.writeInt32LE(-2, hxcleob)
+                    hxcleob += 4
+                break;
+
+                // variable
                 case 'loc':
                     var bvsult = bvcleo[gj]
                     bvsult = bvsult.split(`@`)
@@ -119,6 +310,7 @@ function compilecs(txtcs) {
                     hxcleob += 2    
                 break;
 
+                // number
                 case 'int':
                     var bvsult = parseInt(bvcleo[gj])
                     if (127 >= bvsult) {
@@ -184,6 +376,10 @@ function checktype(cmx) {
     var cmx2 = cmx.length
     cmx2--
     
+    if (cmx[0] == `/` || cmx[0] == `;`) {
+        return 'skip'
+    }
+
     // opcode
     if (cmx[4] == `:`) {
         return 'op'
@@ -230,6 +426,14 @@ function checktype(cmx) {
         if (stilsame(cmxs, persfloat(cmxs)) == true) {
             return 'flt'
         }
+    }
+
+    // label
+    if (cmx[0] == `:`) {
+        return 'labl'
+    }
+    if (cmx[0] == `@`) {
+        return 'labl_jmp'
     }
 
     return 'nul'
