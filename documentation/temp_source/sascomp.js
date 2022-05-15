@@ -23,6 +23,7 @@ var labl_string = []
 // Custom var names array
 var cleo_csvar = []
 var csvar_string = []
+var glo_start = 4
 
 // Opcode keywords array
 var cleo_keyop = []
@@ -64,9 +65,19 @@ fel.forEach(fel2 => {
     parsekeyop(fel2)
 })
 
+// convert to low end
+var feblow_lastop = ''
+var febk = []
+console.log('Converting to lowend...')
+feb.forEach(feb2 => {
+    compilelow(feb2)
+})
+
+
 // compiling cleo
 console.log('Compiling Script...')
-feb.forEach(feb2 => {
+febk.forEach(feb2 => {
+    feb2 = feb2.slice(1)
     compilecs(feb2)
 })
 
@@ -92,7 +103,7 @@ for (let adj = 0; adj < cleo_cond.length; adj++) {
         console.log('Compile Error: Condition Max 8')
         exit()
     }
-    if (adj2 > 1 && cond_string[adj] === '') {
+    if (adj2 > 0 && cond_string[adj] != 'or' && cond_string[adj] != 'and') {
         console.log('Compile Error: Single Condition, to much opcode')
         exit()
     }
@@ -121,6 +132,10 @@ for (let yus = 0; yus < hxcleob; yus++) {
 fs.writeFileSync("compile/tes.csi", hxsave)
 console.log('Done')
 
+// Function
+// Maybee
+
+// Parsing Opcode
 function parseop(cy) {
     var pos = 0
     if (opc_true == true) {
@@ -134,6 +149,11 @@ function parseop(cy) {
         cleo_opc.push(cuyop)
         opc_array.push(parseInt(cyt2[1]))
         opc_string.push(cyt[1])
+        
+        // not opcode
+        cleo_opc.push('8'+ cuyop.slice(1))
+        opc_array.push(parseInt(cyt2[1]))
+        opc_string.push(cyt[1])
     } else {
         if (matchstr(cy, '[OPCODES]') == 9) {
             opc_true = true
@@ -141,6 +161,7 @@ function parseop(cy) {
     }
 }
 
+// Parsing Variable
 function parsecusvar(cy) {
     if (cy === '') {return}
     var cyt = cy.split(' ')
@@ -154,6 +175,7 @@ function parsecusvar(cy) {
     }
 }
 
+// Parsing Keywords
 function parsekeyop(cy) {
     if (cy === '') {return}
     var cyt = cy.split(' ')
@@ -168,7 +190,7 @@ function parsekeyop(cy) {
     }
 }
 
-
+// Low End Sytank Compiler
 function compilecs(txtcs) {
     if (txtcs === '') {return}
     var bvnum = 0
@@ -225,7 +247,7 @@ function compilecs(txtcs) {
             console.log('Compile Error: Opcode not found at ' + txtcs[0])
             exit()
         }
-        if (txtcs[0] != '00D6:' && txtcs[0] != '80D6:') {
+        if (txtcs[0] != '00D6:') {
             if (bvnum > opc_array[bvop]) {
                 console.log('Compile Error: to much params at ' + txtcs2)
                 exit()
@@ -260,7 +282,7 @@ function compilecs(txtcs) {
 
                 // condition
                 if (bvsult == 'D600') {
-                    hxcleo.write('04 00', hxcleob, 'hex')
+                    hxcleo.write('0400', hxcleob, 'hex')
                     hxcleob += 2
                     last_cond = hxcleob
                 } else {
@@ -310,6 +332,17 @@ function compilecs(txtcs) {
                     hxcleob += 2    
                 break;
 
+                case 'glo':
+                    var bvsult = bvcleo[gj]
+                    bvsult = bvsult.split(`$`)
+                    bvsult = parseInt(bvsult[1])
+                    bvsult *= 4
+                    hxcleo.write('02', hxcleob, 'hex')
+                    hxcleob += 1 
+                    hxcleo.writeInt16LE(bvsult, hxcleob)
+                    hxcleob += 2 
+                break;
+
                 // number
                 case 'int':
                     var bvsult = parseInt(bvcleo[gj])
@@ -353,6 +386,62 @@ function compilecs(txtcs) {
 
 }
 
+// Convert to low end sytank
+function compilelow(txtcs) {
+    if (txtcs === '') {return}
+    txtcs = txtcs.split(' ')
+    var bvf = ''
+    for (let tic = 0; tic < txtcs.length; tic++) {
+        var bv = checktype(txtcs[tic])
+        switch (bv) {
+            case 'glo':
+                var bvsult = txtcs[tic]
+                bvsult = bvsult.split(`$`)
+                bvsult = bvsult[1].toUpperCase()
+                if (isNaN(parseInt(bvsult)) == true) {
+                    var bvsult2 = cleo_csvar[csvar_string.indexOf(bvsult)]
+                    if (typeof bvsult2 == 'undefined') {
+                        cleo_csvar.push(glo_start)
+                        csvar_string.push(bvsult)
+                        bvsult2 = glo_start
+                        glo_start++
+                    }
+                    txtcs[tic] = `$` + bvsult2
+                } else {
+                    if (glo_start == 4) {
+                        glo_start = parseInt(bvsult)
+                        glo_start++
+                    }
+                }
+            break;
+
+            case 'op':
+                var bvsult = txtcs[tic]
+                feblow_lastop = bvsult
+            break;
+
+            case 'nul':
+                if (tic == 0) {
+                    var bvsult = txtcs[tic].toLowerCase()
+                    bvsult = cleo_keyop[keyop_string.indexOf(bvsult)]
+                    if (typeof bvsult == 'undefined') {
+                    } else {
+                        txtcs[tic] = bvsult + ': if'
+                        bv = 'op'
+                        feblow_lastop = bvsult
+                    }
+                }
+            break;
+
+            default:
+            break;
+        }
+        bvf = bvf + ' ' + txtcs[tic]
+    }
+    febk.push(bvf)
+}
+
+// Swapping [00 01] -> [01 00]
 function swapthis(vi) {
     var vi2 = 0
     var vi4 = ''
@@ -370,6 +459,7 @@ function swapthis(vi) {
     return vi
 }
 
+// Checking Sytank / Type
 function checktype(cmx) {
     var cmxs = cmx
     cmx = cmx.split('')
@@ -439,6 +529,7 @@ function checktype(cmx) {
     return 'nul'
 }
 
+// Get Float from string
 function persfloat(vi) {
     var vi2 = parseFloat(vi)
     var vi3 = parseInt(vi)
@@ -448,6 +539,7 @@ function persfloat(vi) {
     return vi2
 }
 
+// Check is same?
 function stilsame(vi, vi2) {
     if (vi == vi2 + '') {
         return true
@@ -455,6 +547,7 @@ function stilsame(vi, vi2) {
     return false
 }
 
+// String Finder 
 function matchstr(mactb, mactb2) {
     mactb = mactb.split('')
     mactb2 = mactb2.split('')
