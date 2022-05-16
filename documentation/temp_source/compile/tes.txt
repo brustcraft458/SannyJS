@@ -1,5 +1,12 @@
 0000: NOP 
-0004: $120 = 200 
+0004: $120 = 0
+0247: load_model #MALE01
+
+:load
+wait 0
+if
+0248:   model #MALE01 available 
+jf @load
 0004: $anjimeh = 3 
 0004: $bilek = 4 
 0004: $pov = 5 
@@ -16,5 +23,7 @@ if and
 0038:   $aww == 69 
 jf @ayonima
 00A1: put_actor $PLAYER_ACTOR at $x $y $z
+09C7: change_player $PLAYER_ACTOR model_to #MALE01 
+070D: rebuild_player $PLAYER_CHAR 
 
 end_thread
