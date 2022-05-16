@@ -41,6 +41,10 @@ var cond_num = -1
 var last_cond = -1
 var last_condty = ''
 
+// Models Array
+var cleo_modls = []
+var modls_string = []
+
 // parsing sascm
 console.log('Load SASCM.ini...')
 var fel = fs.readFileSync("sannydata/sa_mobile/SASCM.ini", 'ascii')
@@ -64,6 +68,30 @@ fel = fel.split('\r\n')
 fel.forEach(fel2 => {
     parsekeyop(fel2)
 })
+
+// parsing models id
+console.log('Load Models ID...')
+var fel = fs.readFileSync("sannydata/sa_mobile/vehicles.ide", 'ascii')
+fel = fel.split('\r\n')
+fel.forEach(fel2 => {
+    parsemodels(fel2)
+})
+var fel = fs.readFileSync("sannydata/sa_mobile/veh_mods.ide", 'ascii')
+fel = fel.split('\r\n')
+fel.forEach(fel2 => {
+    parsemodels(fel2)
+})
+var fel = fs.readFileSync("sannydata/sa_mobile/peds.ide", 'ascii')
+fel = fel.split('\r\n')
+fel.forEach(fel2 => {
+    parsemodels(fel2)
+})
+var fel = fs.readFileSync("sannydata/sa_mobile/default.ide", 'ascii')
+fel = fel.split('\r\n')
+fel.forEach(fel2 => {
+    parsemodels(fel2)
+})
+
 
 // convert to low end
 var feblow_lastop = ''
@@ -188,6 +216,21 @@ function parsekeyop(cy) {
         cyt2 = cyt[1]
         keyop_string.push(cyt2.toLowerCase())
     }
+}
+
+// Parsing Models ID
+function parsemodels(cy) {
+    if (cy === '') {return}
+    var cyt = cy.split('')
+    cy = cy.replace(' ', '')
+    cy = cy.replace('\t', '')
+    if (cyt[0] == `#`) {return}
+    if (cyt[0] == `;`) {return}
+    var cyt = cy.split(',')
+    if (typeof cyt[1] == 'undefined') {return}
+    var cyt2 = cyt[1].split('\t')
+    cleo_modls.push(parseInt(cyt[0]))
+    modls_string.push(cyt2[0].toUpperCase())
 }
 
 // Low End Sytank Compiler
@@ -433,6 +476,17 @@ function compilelow(txtcs) {
                 }
             break;
 
+            case 'moid':
+                var bvsult = txtcs[tic].split(`#`)
+                bvsult = bvsult[1].toUpperCase()
+                bvsult = cleo_modls[modls_string.indexOf(bvsult)]
+                if (typeof bvsult == 'undefined') {
+                    console.log('Compile Error: Model Name not found at ' + txtcs[tic])
+                    exit()
+                }
+                txtcs[tic] = bvsult
+            break;
+
             default:
             break;
         }
@@ -526,6 +580,19 @@ function checktype(cmx) {
         return 'labl_jmp'
     }
 
+    // models id
+    if (cmx[0] == `#`) {
+        return 'moid'
+    }
+
+    // string
+    if (cmx[0] == `'` && cmx[cmx2] == `'`) {
+        return 'shr_str'
+    }
+    if (cmx[0] == `"` && cmx[cmx2] == `"`) {
+        return 'lng_str'
+    }
+    
     return 'nul'
 }
 
