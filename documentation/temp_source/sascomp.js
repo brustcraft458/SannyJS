@@ -1,14 +1,42 @@
 // Bisma Mods
 // Sany Compiler
 const fs = require('fs')
-const { exit } = require('process')
-var hxcleo = Buffer.alloc(200000, '00', 'hex')
+const { exit, memoryUsage } = require('process')
+var hxcleo = []
 var hxcleob = 0
+var cleo_type = 'csa'
+
+// Config Array
+var conpig = []
+var conpig_string = []
 
 // Load Script
 console.log('Load script tes.txt...')
 var feb = fs.readFileSync("compile/tes.txt", 'ascii')
 feb = feb.split('\r\n')
+
+// Load Config
+var fel = fs.readFileSync('config.ini', 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parseconf(fel2)
+})
+
+// searching cleo type
+feb.forEach(fel2 => {
+    var kaseni = cleotypesearch(fel2)
+    if (kaseni != -1) {
+        cleo_type = kaseni
+        return
+    }
+})
+ 
+// config var
+var conpig_dirroot = conpig_string[conpig.indexOf('root_dir')]
+var conpig_dirgta = conpig_string[conpig.indexOf('gta_dir')]
+var conpig_dircleo = conpig_string[conpig.indexOf('cleo_dir')]
+var conpig_dirsc = conpig_string[conpig.indexOf('source_dir')]
+var conpig_mode = conpig_string[conpig.indexOf(cleo_type + '_compile')]
 
 // opcode array
 var cleo_opc = []
@@ -47,50 +75,74 @@ var modls_string = []
 
 // parsing sascm
 console.log('Load SASCM.ini...')
-var fel = fs.readFileSync("sannydata/sa_mobile/SASCM.ini", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parseop(fel2)
-})
+var path_fel = "sannydata/" + conpig_mode + "/SASCM.ini"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parseop(fel2)
+    })    
+}
 
 // parsing CustomVariables
 console.log('Load CustomVariables.ini...')
-var fel = fs.readFileSync("sannydata/sa_mobile/CustomVariables.ini", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parsecusvar(fel2)
-})
+path_fel = "sannydata/" + conpig_mode + "/CustomVariables.ini"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parsecusvar(fel2)
+    })
+}
 
 // parsing keywords
 console.log('Load keywords.txt...')
-var fel = fs.readFileSync("sannydata/sa_mobile/keywords.txt", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parsekeyop(fel2)
-})
+path_fel = "sannydata/" + conpig_mode + "/keywords.txt"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parsekeyop(fel2)
+    })
+}
 
 // parsing models id
 console.log('Load Models ID...')
-var fel = fs.readFileSync("sannydata/sa_mobile/vehicles.ide", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parsemodels(fel2)
-})
-var fel = fs.readFileSync("sannydata/sa_mobile/veh_mods.ide", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parsemodels(fel2)
-})
-var fel = fs.readFileSync("sannydata/sa_mobile/peds.ide", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parsemodels(fel2)
-})
-var fel = fs.readFileSync("sannydata/sa_mobile/default.ide", 'ascii')
-fel = fel.split('\r\n')
-fel.forEach(fel2 => {
-    parsemodels(fel2)
-})
+path_fel = "sannydata/" + conpig_mode + "/vehicles.ide"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parsemodels(fel2)
+    })
+}
+
+path_fel = "sannydata/" + conpig_mode + "/veh_mods.ide"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parsemodels(fel2)
+    })
+}
+
+path_fel = "sannydata/" + conpig_mode + "/peds.ide"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parsemodels(fel2)
+    })
+}
+
+path_fel = "sannydata/" + conpig_mode + "/default.ide"
+if (fs.existsSync(path_fel)) {
+    var fel = fs.readFileSync(path_fel, 'ascii')
+    fel = fel.split('\r\n')
+    fel.forEach(fel2 => {
+        parsemodels(fel2)
+    })
+}
 
 
 // convert to low end
@@ -103,7 +155,7 @@ feb.forEach(feb2 => {
 
 
 // compiling cleo
-console.log('Compiling Script...')
+console.log('Compiling Script to ' + cleo_type + '...')
 febk.forEach(feb2 => {
     feb2 = feb2.slice(1)
     compilecs(feb2)
@@ -118,7 +170,7 @@ for (let adj = 0; adj < cleo_lajmp.length; adj++) {
         exit()
     }
     adj3 *= -1
-    hxcleo.writeInt32LE(adj3, lajmp_pos[adj])
+    updatedata(adj3, 4, 'int', lajmp_pos[adj])
 }
 
 // ReCaltulating condition
@@ -126,7 +178,6 @@ for (let adj = 0; adj < cleo_cond.length; adj++) {
     var adj2 = cleo_cond[adj]
     adj2--
     var adj3 = cond_pos[adj]
-    adj3--
     if (adj2 > 7) {
         console.log('Compile Error: Condition Max 8')
         exit()
@@ -134,15 +185,22 @@ for (let adj = 0; adj < cleo_cond.length; adj++) {
     if (adj2 > 0 && cond_string[adj] != 'or' && cond_string[adj] != 'and') {
         console.log('Compile Error: Single Condition, to much opcode')
         exit()
+    } else {
+        if (cond_string[adj] == 'or' || cond_string[adj] == 'and') {
+            if (1 > adj2) {
+                console.log('Compile Error: Single Condition, wtf ' + cond_string[adj])
+                exit()
+            }
+        }
     }
     switch (cond_string[adj]) {
         case 'or':
             adj2 += 20
-            hxcleo.writeInt8(adj2, adj3)
+            updatedata(adj2, 1, 'int', adj3)
         break;
  
         case 'and':
-            hxcleo.writeInt8(adj2, adj3)
+            updatedata(adj2, 1, 'int', adj3)
         break;
 
         default:
@@ -150,18 +208,43 @@ for (let adj = 0; adj < cleo_cond.length; adj++) {
     }
 }
 
-// copy & limiting buf
+// copy & limiting buf  
 var hxsave = Buffer.alloc(hxcleob)
-for (let yus = 0; yus < hxcleob; yus++) {
-    hxsave.writeUInt8(parseInt(hxcleo[yus]), yus)
-}
+var hxnum = 0
+hxcleo.forEach(komo => {
+     komo.forEach(komo => {
+         hxsave[hxnum] = komo
+         hxnum++
+     })
+})
 
 // Save to file
-fs.writeFileSync("compile/tes.csi", hxsave)
+fs.writeFileSync("compile/tes." + cleo_type, hxsave)
 console.log('Done')
+
 
 // Function
 // Maybee
+
+// Parsing Config
+
+function parseconf(cy) {
+    if (cy === '') {return}
+    var cyt = cy.split('')
+    if (cyt[0] == `;`) {return}
+    if (cyt[0] == `[`) {return}
+    var cyt2 = cy.split(` = `)
+    if (typeof cyt2[1] == 'undefined') {
+        console.log('Config Error: corrupted')
+        exit()
+    }
+    if (typeof cyt2[0] == 'undefined') {
+        console.log('Config Error: corrupted')
+        exit()
+    }
+    conpig.push(cyt2[0].toLowerCase())
+    conpig_string.push(cyt2[1].replace(`"`, '').replace(`"`, ''))
+}
 
 // Parsing Opcode
 function parseop(cy) {
@@ -320,14 +403,12 @@ function compilecs(txtcs) {
                 }
                 bvtrue = true
                 var bvsult = swapthis(cleo_opc[bvop])
-                hxcleo.write(bvsult, hxcleob, 'hex')
-                hxcleob += 2
+                writedata(bvsult, 2, 'hex')
 
                 // condition
                 if (bvsult == 'D600') {
-                    hxcleo.write('0400', hxcleob, 'hex')
-                    hxcleob += 2
-                    last_cond = hxcleob
+                    writedata('04', 1, 'hex')
+                    last_cond = writedata('00', 1, 'hex')
                 } else {
                     if (bvsult == '4D00') {
                         if (last_cond != -1) {
@@ -356,12 +437,10 @@ function compilecs(txtcs) {
                     var bvsult = bvcleo[gj]
                     bvsult = bvsult.split(`@`)
                     bvsult = bvsult[1]
-                    hxcleo.write('01', hxcleob, 'hex')
-                    hxcleob += 1
+                    writedata('01', 1, 'hex')
+                    var hxclb = writedata(-2, 4, 'int')
                     cleo_lajmp.push(bvsult)
-                    lajmp_pos.push(hxcleob) 
-                    hxcleo.writeInt32LE(-2, hxcleob)
-                    hxcleob += 4
+                    lajmp_pos.push(hxclb)
                 break;
 
                 // variable
@@ -369,10 +448,8 @@ function compilecs(txtcs) {
                     var bvsult = bvcleo[gj]
                     bvsult = bvsult.split(`@`)
                     bvsult = parseInt(bvsult[0])
-                    hxcleo.write('03', hxcleob, 'hex')
-                    hxcleob += 1 
-                    hxcleo.writeInt16LE(bvsult, hxcleob)
-                    hxcleob += 2    
+                    writedata('03', 1, 'hex')
+                    writedata(bvsult, 2, 'int')
                 break;
 
                 case 'glo':
@@ -380,32 +457,24 @@ function compilecs(txtcs) {
                     bvsult = bvsult.split(`$`)
                     bvsult = parseInt(bvsult[1])
                     bvsult *= 4
-                    hxcleo.write('02', hxcleob, 'hex')
-                    hxcleob += 1 
-                    hxcleo.writeInt16LE(bvsult, hxcleob)
-                    hxcleob += 2 
+                    writedata('02', 1, 'hex')
+                    writedata(bvsult, 2, 'int')
                 break;
 
                 // number
                 case 'int':
                     var bvsult = parseInt(bvcleo[gj])
                     if (127 >= bvsult) {
-                        hxcleo.write('04', hxcleob, 'hex')
-                        hxcleob += 1 
-                        hxcleo.writeInt8(bvsult, hxcleob)
-                        hxcleob += 1    
+                        writedata('04', 1, 'hex')
+                        writedata(bvsult, 1, 'int') 
                     } else {
                         if (32767 >= bvsult) {
-                            hxcleo.write('05', hxcleob, 'hex')
-                            hxcleob += 1 
-                            hxcleo.writeInt16LE(bvsult, hxcleob)
-                            hxcleob += 2    
+                            writedata('05', 1, 'hex')
+                            writedata(bvsult, 2, 'int')
                         } else {
                             if (2147483647 >= bvsult) {
-                                hxcleo.write('01', hxcleob, 'hex')
-                                hxcleob += 1 
-                                hxcleo.writeInt32LE(bvsult, hxcleob)
-                                hxcleob += 4    
+                                writedata('01', 1, 'hex')
+                                writedata(bvsult, 4, 'int') 
                             }
                         }
                     }
@@ -414,10 +483,8 @@ function compilecs(txtcs) {
 
                 case 'flt':
                     var bvsult = parseFloat(bvcleo[gj])
-                    hxcleo.write('06', hxcleob, 'hex')
-                    hxcleob += 1 
-                    hxcleo.writeFloatLE(bvsult, hxcleob)
-                    hxcleob += 4    
+                    writedata('06', 1, 'hex')
+                    writedata(bvsult, 4, 'flt')
                 break;
 
                 
@@ -429,9 +496,31 @@ function compilecs(txtcs) {
 
 }
 
+function cleotypesearch(txtcs) {
+    if (txtcs === '') {return -1}
+    var txtcsb2 = -1
+    var txtcsb = txtcs.replace(' ', '')
+    if (txtcsb == `{$CLEO.csi}`) {
+        txtcsb2 = 'csi'
+    } else {
+        if (txtcsb == `{$CLEO.csa}`) {
+            txtcsb2 = 'csa'
+        } else {
+            if (txtcsb == `{$CLEO.cs}`) {
+                txtcsb2 = 'cs'
+            }
+        }
+    }
+    return txtcsb2
+}
+
 // Convert to low end sytank
 function compilelow(txtcs) {
     if (txtcs === '') {return}
+    // check cleo type
+    if (txtcs.search(`{`) != -1 || txtcs.search(`}`) != -1) {return}
+
+    // convert procces
     txtcs = txtcs.split(' ')
     var bvf = ''
     for (let tic = 0; tic < txtcs.length; tic++) {
@@ -469,7 +558,11 @@ function compilelow(txtcs) {
                     bvsult = cleo_keyop[keyop_string.indexOf(bvsult)]
                     if (typeof bvsult == 'undefined') {
                     } else {
-                        txtcs[tic] = bvsult + ': if'
+                        if (txtcs[tic] == 'if') {
+                            txtcs[tic] = bvsult + ': if'
+                        } else {
+                            txtcs[tic] = bvsult + ': ' + txtcs[tic]
+                        }
                         bv = 'op'
                         feblow_lastop = bvsult
                     }
@@ -511,6 +604,115 @@ function swapthis(vi) {
     })
     vi = vi4 + vi5 + ''
     return vi
+}
+
+// Binary Data
+function updatedata(bp, bp2, bp3, bp4) {
+    var hxbb = Buffer.alloc(bp2, '00', 'hex')
+    switch (bp3) {
+        case 'int':
+            switch (bp2) {
+                case 1:
+                    hxbb.writeInt8(bp, 0)
+                    hxcleo[bp4] = hxbb
+                break;
+                case 2:
+                    hxbb.writeInt16LE(bp, 0)
+                    hxcleo[bp4] = hxbb
+                break;
+                case 4:
+                    hxbb.writeInt32LE(bp, 0)
+                    hxcleo[bp4] = hxbb
+                break;
+
+                default:
+                break;
+            }
+        break;
+        
+        case 'flt':
+            hxbb.writeFloatLE(bp, 0)
+            hxcleo[bp4] = hxbb
+            break;
+
+        case 'hex':
+            hxbb.write(bp, 'hex')
+            hxcleo[bp4] = hxbb
+            break;
+        
+        default:
+        break;
+    }
+}
+
+function writedata(bp, bp2, bp3) {
+    var hxbb = Buffer.alloc(bp2, '00', 'hex')
+    switch (bp3) {
+        case 'int':
+            switch (bp2) {
+                case 1:
+                    hxbb.writeInt8(bp, 0)
+                    hxcleo.push(hxbb)
+                    hxcleob += 1
+                break;
+                case 2:
+                    hxbb.writeInt16LE(bp, 0)
+                    hxcleo.push(hxbb)
+                    hxcleob += 2
+                break;
+                case 4:
+                    hxbb.writeInt32LE(bp, 0)
+                    hxcleo.push(hxbb)
+                    hxcleob += 4
+                break;
+
+                default:
+                break;
+            }
+        break;
+        
+        case 'uint':
+            switch (bp2) {
+                case 1:
+                    hxbb.writeUInt8(bp, 0)
+                    hxcleo.push(hxbb)
+                    hxcleob += 1
+                break;
+                case 2:
+                    hxbb.writeUInt16LE(bp, 0)
+                    hxcleo.push(hxbb)
+                    hxcleob += 2
+                break;
+                case 4:
+                    hxbb.writeUInt32LE(bp, 0)
+                    hxcleo.push(hxbb)
+                    hxcleob += 4
+                break;
+
+                default:
+                break;
+            }
+        break;
+
+        case 'flt':
+            hxbb.writeFloatLE(bp, 0)
+            hxcleo.push(hxbb)
+            hxcleob += 4
+        break;
+
+        case 'hex':
+            hxbb.write(bp, 'hex')
+            hxcleo.push(hxbb)
+            hxcleob += bp2
+        break;
+        
+        default:
+        return -1
+        break;
+    }
+    var bp6 = hxcleo.length
+    bp6 -= 1
+    return bp6
 }
 
 // Checking Sytank / Type
