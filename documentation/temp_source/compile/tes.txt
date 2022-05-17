@@ -1,16 +1,19 @@
+{$CLEO .cs}
+// This Is Comment
+{Another Comment}
 0000: NOP 
 0004: $120 = 0
-0247: load_model #MALE01
+0247: load_model #MALE01 // This is Load
 
 :load
 wait 0
 if
-0248:   model #MALE01 available 
+0248:   model #MALE01 available // Available maybe
 jf @load
-0004: $anjimeh = 3 
-0004: $bilek = 4 
-0004: $pov = 5 
-0004: $aww = 6 
+0004: $anjimeh = 3 // Jadi Animeh Voss
+0004: $bilek = 4 // Lu Bilek
+0004: $pov = 5 // Pov Ancrit
+0004: $aww = 6
 00A0: store_actor $PLAYER_ACTOR position_to $x $y $z 
 0009: $z += 30.0
 
@@ -25,5 +28,7 @@ jf @ayonima
 00A1: put_actor $PLAYER_ACTOR at $x $y $z
 09C7: change_player $PLAYER_ACTOR model_to #MALE01 
 070D: rebuild_player $PLAYER_CHAR 
+jump @end
 
+:end
 end_thread
