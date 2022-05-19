@@ -10,12 +10,14 @@
 01 00 [01] [00 CA 9A 3B] -> int32 4hex, max 2147483647
 01 00 [06] [27 D7 58 62] -> unkwon 4hex, max unlimited
 0F 00 03 01 00 [06] [00 00 8B 42] -> float 4hex, max unkwon
-AA 05 0B 01 00 [09] [4C 55 42 49 4C 45 4B] [00] -> short string, end_zero
+AA 05 0B 05 00 [09] [30] [31 32 33 34 35 36 00] -> short string, empty_fill_null
+D2 06 11 14 00 [0E] [0B] [53 45 4D 55 41 5F 42 45 52 41 4B] -> long string
 
 // Variable Types 
 06 00 [03] [01 00] 04 45 -> local_int 2hex
 05 00 [02] [0C 00] 06 00 00 00 3F -> global_float*4 2hex
 AA 05 [0B] [05 00] 09 4C 55 42 49 4C 45 4B 00 -> local_short_str 2hex
+D2 06 [11] [14 00] 0E 11 31 32 33 34 35 36 37 38 61 62 63 64 65 66 67 61 61 -> local_strlong
 
 // Array Container, 20@(7@,232i)
 85 00 03 05 00 [08] [14 00]  07 00   E8   00 -> Array_header
