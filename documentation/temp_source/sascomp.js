@@ -145,6 +145,16 @@ if (fs.existsSync(path_fel)) {
 }
 
 
+// Comment Hider
+var febkc_true = false
+for (let ajv = 0; ajv < feb.length; ajv++) {
+    feb[ajv] = feb[ajv].replace(`/*`, `{`)
+    feb[ajv] = feb[ajv].replace(`*/`, `}`)
+}
+for (let ajv = 0; ajv < feb.length; ajv++) {
+    feb[ajv] = hidecomment(feb[ajv], `{`, `}`)
+}
+
 // convert to low end
 var feblow_lastop = ''
 var febk = []
@@ -152,7 +162,7 @@ console.log('Converting to lowend...')
 feb.forEach(feb2 => {
     compilelow(feb2)
 })
-
+feb = []
 
 // compiling cleo
 console.log('Compiling Script to ' + cleo_type + '...')
@@ -448,7 +458,35 @@ function compilecs(txtcs) {
                     var bvsult = bvcleo[gj]
                     bvsult = bvsult.split(`@`)
                     bvsult = parseInt(bvsult[0])
+                    if (bvsult > 41) {
+                        console.log('Compile Error: Local Variable to much at ' + bvcleo[gj])
+                        exit()
+                    }
                     writedata('03', 1, 'hex')
+                    writedata(bvsult, 2, 'int')
+                break;
+
+                case 'loc_str':
+                    var bvsult = bvcleo[gj]
+                    bvsult = bvsult.split(`@s`)
+                    bvsult = parseInt(bvsult[0])
+                    if (bvsult > 41) {
+                        console.log('Compile Error: Local Variable to much at ' + bvcleo[gj])
+                        exit()
+                    }
+                    writedata('0B', 1, 'hex')
+                    writedata(bvsult, 2, 'int')
+                break;
+
+                case 'loc_strlong':
+                    var bvsult = bvcleo[gj]
+                    bvsult = bvsult.split(`@v`)
+                    bvsult = parseInt(bvsult[0])
+                    if (bvsult > 41) {
+                        console.log('Compile Error: Local Variable to much at ' + bvcleo[gj])
+                        exit()
+                    }
+                    writedata('11', 1, 'hex')
                     writedata(bvsult, 2, 'int')
                 break;
 
@@ -486,8 +524,36 @@ function compilecs(txtcs) {
                     writedata('06', 1, 'hex')
                     writedata(bvsult, 4, 'flt')
                 break;
-
                 
+                // Strings
+                case 'shr_str':
+                    var bvsult = bvcleo[gj]
+                    bvsult = bvsult.split(`'`)
+                    bvsult = fillstrhex(bvsult[1], 8)
+                    if (bvsult.bin == -1) {
+                        console.log('Compile Error: Unkwon Short string at ' + bvcleo[gj])
+                        exit()
+                    } else {
+                        if (bvsult.lent > 6) {
+                            writedata('0F', 1, 'hex')
+                            writedata(bvsult.bin, 8, 'bin')
+                            writedata('0000000000000000', 8, 'hex')
+                        } else {
+                            writedata('09', 1, 'hex')
+                            writedata(bvsult.bin, 8, 'bin')
+                        }
+                    }
+                break;
+                
+                case 'lng_str':
+                    var bvsult = bvcleo[gj]
+                    bvsult = bvsult.split(`"`)
+                    bvsult = fillstrhex(bvsult[1], -1)
+                    writedata('0E', 1, 'hex')
+                    writedata(bvsult.lent, 1, 'int')
+                    writedata(bvsult.bin, bvsult.lent, 'bin') 
+                break;
+
                 default:
                 break;
             }
@@ -517,8 +583,6 @@ function cleotypesearch(txtcs) {
 // Convert to low end sytank
 function compilelow(txtcs) {
     if (txtcs === '') {return}
-    // check cleo type
-    if (txtcs.search(`{`) != -1 || txtcs.search(`}`) != -1) {return}
 
     // convert procces
     txtcs = txtcs.split(' ')
@@ -706,6 +770,11 @@ function writedata(bp, bp2, bp3) {
             hxcleob += bp2
         break;
         
+        case 'bin':
+            hxcleo.push(bp)
+            hxcleob += bp2
+        break;
+        
         default:
         return -1
         break;
@@ -796,6 +865,54 @@ function checktype(cmx) {
     }
     
     return 'nul'
+}
+
+// String to buffer with zero fill
+function fillstrhex(vi1, vi2) {
+    if (vi2 == -1) {
+        var vi3 = Buffer.from(vi1, 'ascii')
+        var vi7 = vi3.length
+    } else {
+        var vi3 = Buffer.alloc(vi2)
+        var vi6 = 0
+        var vi7 = -1
+        vi1 = vi1.split('')
+        if (vi1.length > vi2) {return {'lent': -1, 'bin': -1}}
+        for (let vi4 = 0; vi4 < vi1.length; vi4++) {
+            if (typeof vi1[vi4] == 'string') {
+                vi7++
+                vi3.write(vi1[vi4], vi6, 'ascii')
+                vi6++
+            } else {
+                vi3.write('00', vi6, 'hex')
+                vi6++
+            }
+            
+        }
+    }
+    return {'lent': vi7, 'bin': vi3}
+}
+
+// hide comment
+function hidecomment(vi, vi1, vi2) {
+    vi = vi.split('')
+    var vic2 = ''
+    vi.forEach(vic => {
+        switch (vic) {
+            case vi1:
+                febkc_true = true    
+            break;
+            case vi2:
+                febkc_true = false
+            break;
+            default:
+                if (febkc_true == false) {
+                    vic2 = vic2 + vic
+                }
+            break;
+        }
+    })
+    return vic2 
 }
 
 // Get Float from string
