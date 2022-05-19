@@ -2,7 +2,10 @@
 // This Is Comment
 {Another Comment}
 0000: NOP 
-0004: $120 = 0
+0004: 4@ = 0
+05AA: 21@s = '12345678' // @s = 'short' 
+06D2: 22@v = "SEMUA_BERAKHIR_SEPERTI_POHON_ITU" // @v = string 
+
 0247: load_model #MALE01 // This is Load
 
 :load
@@ -17,6 +20,12 @@ jf @load
 00A0: store_actor $PLAYER_ACTOR position_to $x $y $z 
 0009: $z += 30.0
 
+{
+    Another Big Comments
+    Amadiketu
+    Tes 123456789
+}
+
 :ayonima
 wait 10
 0008: $aww += 1 
@@ -26,9 +35,22 @@ if and
 0038:   $aww == 69 
 jf @ayonima
 00A1: put_actor $PLAYER_ACTOR at $x $y $z
-09C7: change_player $PLAYER_ACTOR model_to #MALE01 
+09C7: change_player $PLAYER_CHAR model_to #MALE01 
 070D: rebuild_player $PLAYER_CHAR 
-jump @end
+
+:loop_text
+wait 0
+00BE: text_clear_all
+0ACD: show_text_highpriority 22@v time 100
+jump @loop_text
+
+/*
+    Another Big Comments
+    kono yote kara
+    kobore so nahodo
+    kimi no moratta
+    ay ye wa, doko ni sute yoo?
+*/
 
 :end
 end_thread
