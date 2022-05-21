@@ -3,13 +3,16 @@
 {Another Comment}
 0000: NOP 
 0004: 4@ = 0
-05AA: 21@s = '12345678' // @s = 'short' 
-06D2: 22@v = "SEMUA_BERAKHIR_SEPERTI_POHON_ITU" // @v = string 
-
+05AA: 21@s = '1234 678' // @s = 'short' 
+06D2: 22@v = "KORETE INOSAN BOKUWA HASTANO ASATAMEMO" // @v = string 
+05B6: save_string_to_debug_file "CURRENT_WANTED_LIST = "
+04ED: load_animation  'LOWRIDER'
 0247: load_model #MALE01 // This is Load
 
 :load
 wait 0
+00BE: text_clear_all
+00BA: show_text_styled GXT 'BEEFY' time 1000 style 2  // Beefy Baron
 if
 0248:   model #MALE01 available // Available maybe
 jf @load
