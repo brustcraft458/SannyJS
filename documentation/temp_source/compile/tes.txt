@@ -1,19 +1,20 @@
 {$CLEO .cs}
 // This Is Comment
 {Another Comment}
-0000: NOP 
+thread 'KONESAN'
 0004: 4@ = 0
 05AA: 21@s = '1234 678' // @s = 'short' 
-06D2: 22@v = "KORETE INOSAN BOKUWA HASTANO ASATAMEMO" // @v = string 
+06D2: 22@v = "KORETE INOSAN" // @v = string 
 05B6: save_string_to_debug_file "CURRENT_WANTED_LIST = "
-04ED: load_animation  'LOWRIDER'
+04ED: load_animation 'RIOT'
 0247: load_model #MALE01 // This is Load
 
 :load
 wait 0
 00BE: text_clear_all
 00BA: show_text_styled GXT 'BEEFY' time 1000 style 2  // Beefy Baron
-if
+if and
+04EE:   animation "RIOT" loaded
 0248:   model #MALE01 available // Available maybe
 jf @load
 0004: $anjimeh = 3 // Jadi Animeh Voss
@@ -21,11 +22,11 @@ jf @load
 0004: $pov = 5 // Pov Ancrit
 0004: $aww = 6
 00A0: store_actor $PLAYER_ACTOR position_to $x $y $z 
-0009: $z += 30.0
+0009: $z += 5.0
 
 {
     Another Big Comments
-    Amadiketu
+    Amadiketu 
     Tes 123456789
 }
 
@@ -40,6 +41,7 @@ jf @ayonima
 00A1: put_actor $PLAYER_ACTOR at $x $y $z
 09C7: change_player $PLAYER_CHAR model_to #MALE01 
 070D: rebuild_player $PLAYER_CHAR 
+0812: AS_actor $PLAYER_ACTOR perform_animation "RIOT_CHANT" IFP "RIOT" framedelta 4.0 loopA 1 lockX 0 lockY 0 lockF 0 time -1  // versionB
 
 :loop_text
 wait 0
