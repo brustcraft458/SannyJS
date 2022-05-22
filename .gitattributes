@@ -1,1 +1,2 @@
-documentation/temp_source/* linguist-detectable
+documentation/temp_source/* linguist-documentation=false
+documentation/temp_source/* linguist-vendored
