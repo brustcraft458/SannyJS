@@ -30,7 +30,7 @@ feb.forEach(fel2 => {
         return
     }
 })
- 
+
 // config var
 var conpig_dirroot = conpig_string[conpig.indexOf('root_dir')]
 var conpig_dirgta = conpig_string[conpig.indexOf('gta_dir')]
@@ -42,6 +42,8 @@ var conpig_mode = conpig_string[conpig.indexOf(cleo_type + '_compile')]
 var cleo_opc = []
 var opc_array = []
 var opc_string = []
+var opc_prity = []
+var opc_condty = []
 var opc_true = false
 
 // label array
@@ -144,15 +146,19 @@ if (fs.existsSync(path_fel)) {
     })
 }
 
-
 // Comment Hider
 var febkc_true = false
 for (let ajv = 0; ajv < feb.length; ajv++) {
-    feb[ajv] = feb[ajv].replace(`/*`, `{`)
-    feb[ajv] = feb[ajv].replace(`*/`, `}`)
+    feb[ajv] = feb[ajv].replaceAll(`/*`, `{`)
+    feb[ajv] = feb[ajv].replaceAll(`*/`, `}`)
 }
 for (let ajv = 0; ajv < feb.length; ajv++) {
     feb[ajv] = hidecomment(feb[ajv], `{`, `}`)
+}
+
+// String space fix
+for (let ajv = 0; ajv < feb.length; ajv++) {
+    feb[ajv] = strspacefix(feb[ajv], ' ', '%spc%')
 }
 
 // convert to low end
@@ -253,7 +259,7 @@ function parseconf(cy) {
         exit()
     }
     conpig.push(cyt2[0].toLowerCase())
-    conpig_string.push(cyt2[1].replace(`"`, '').replace(`"`, ''))
+    conpig_string.push(cyt2[1].replaceAll(`"`, ''))
 }
 
 // Parsing Opcode
@@ -266,20 +272,45 @@ function parseop(cy) {
         var cyt2 = cyt[0]
         var cyt2 = cyt2.split(`=`)
         var cuyop = cyt2[0]
+        var cyt_hr = cyt[1].split('')
+        var cyt3 = parseopprt(cyt[1])
         cuyop = cuyop.toUpperCase()
         cleo_opc.push(cuyop)
         opc_array.push(parseInt(cyt2[1]))
         opc_string.push(cyt[1])
-        
-        // not opcode
-        cleo_opc.push('8'+ cuyop.slice(1))
-        opc_array.push(parseInt(cyt2[1]))
-        opc_string.push(cyt[1])
+        opc_prity.push(cyt3)
+        if (cyt_hr[0] == ' ' && cyt_hr[1] == ' ') {
+            opc_condty.push(true)
+            // not opcode
+            cleo_opc.push('8'+ cuyop.slice(1))
+            opc_array.push(parseInt(cyt2[1]))
+            opc_string.push('not ' + cyt[1])
+            opc_prity.push(cyt3)
+            opc_condty.push(true)
+        } else {
+            opc_condty.push(false)
+        }
     } else {
         if (matchstr(cy, '[OPCODES]') == 9) {
             opc_true = true
         }
     }
+}
+
+function parseopprt(cy) {
+    var cyt = cy.split(' ')
+    var cyt2 = []
+    var cyskip = false
+    cyt.forEach(cytt => {
+        cytt = cytt.split('')
+        var cytt2 = cytt.length - 1
+        var cytt3 = cytt.length - 2
+        if (cytt[cytt2] == `%`) {
+            cyt2.push(cytt[cytt3].toLowerCase())
+        }    
+        
+    })
+    return cyt2
 }
 
 // Parsing Variable
@@ -299,7 +330,7 @@ function parsecusvar(cy) {
 // Parsing Keywords
 function parsekeyop(cy) {
     if (cy === '') {return}
-    var cyt = cy.split(' ')
+    var cyt = cy.split('')
     if (cyt[0] == ';') {return}
     cyt = cy.split(`=`)
     if (typeof cyt[1] == 'undefined') {return}
@@ -315,7 +346,7 @@ function parsekeyop(cy) {
 function parsemodels(cy) {
     if (cy === '') {return}
     var cyt = cy.split('')
-    cy = cy.replace(' ', '')
+    cy = cy.replaceAll(' ', '')
     cy = cy.replace('\t', '')
     if (cyt[0] == `#`) {return}
     if (cyt[0] == `;`) {return}
@@ -383,7 +414,7 @@ function compilecs(txtcs) {
             console.log('Compile Error: Opcode not found at ' + txtcs[0])
             exit()
         }
-        if (txtcs[0] != '00D6:') {
+        if (txtcs[0] != '00D6:' && opc_array[bvop] != -1) {
             if (bvnum > opc_array[bvop]) {
                 console.log('Compile Error: to much params at ' + txtcs2)
                 exit()
@@ -397,7 +428,6 @@ function compilecs(txtcs) {
 
     //compile procces
     var bvtrue = false
-
     for (let gj = 0; gj < bvcleoty.length; gj++) {
         if (bvtrue == false) {
             if (bvcleoty[gj] == 'labl') {
@@ -409,6 +439,10 @@ function compilecs(txtcs) {
             }
             if (bvcleoty[gj] == 'op') {
                 if (last_cond != -1) {
+                    if (opc_condty[bvop] != true && cleo_opc[bvop] != '004D') {
+                        console.log('Compile Error: Unkwon condition at ' + txtcs2)
+                        exit()
+                    }
                     cond_num++
                 }
                 bvtrue = true
@@ -433,6 +467,9 @@ function compilecs(txtcs) {
                 }
             }
         } else {
+            var bvsult_ty = opc_prity[bvop]
+            var gj_num = gj - 1
+
             switch (bvcleoty[gj]) {
                 
                 // condition type
@@ -528,6 +565,12 @@ function compilecs(txtcs) {
                 // Strings
                 case 'shr_str':
                     var bvsult = bvcleo[gj]
+                    bvsult = bvsult.replaceAll(`%spc%`, ' ')
+                    bvcleo[gj] = bvsult
+                    if (bvsult_ty[gj_num] != 'h' && bvsult_ty[gj_num] != 's' && bvsult_ty[gj_num] != 'g') {
+                        console.log('Compile Error: Short string not alowed at ' + bvcleo[gj])
+                        exit()
+                    }
                     bvsult = bvsult.split(`'`)
                     bvsult = fillstrhex(bvsult[1], 8)
                     if (bvsult.bin == -1) {
@@ -537,7 +580,7 @@ function compilecs(txtcs) {
                         if (bvsult.lent > 6) {
                             writedata('0F', 1, 'hex')
                             writedata(bvsult.bin, 8, 'bin')
-                            writedata('0000000000000000', 8, 'hex')
+                            writedata('00', 8, 'hex')
                         } else {
                             writedata('09', 1, 'hex')
                             writedata(bvsult.bin, 8, 'bin')
@@ -547,11 +590,26 @@ function compilecs(txtcs) {
                 
                 case 'lng_str':
                     var bvsult = bvcleo[gj]
+                    bvsult = bvsult.replaceAll(`%spc%`, ' ')
+                    bvcleo[gj] = bvsult
+                    if (bvsult_ty[gj_num] == 'g') {
+                        console.log('Compile Error: you cannot use Long string at ' + bvcleo[gj])
+                        exit()
+                    }
+                    if (bvsult_ty[gj_num] != 'h' && bvsult_ty[gj_num] != 'k' && bvsult_ty[gj_num] != 's') {
+                        console.log('Compile Error: Long string not alowed at ' + bvcleo[gj])
+                        exit()
+                    }
                     bvsult = bvsult.split(`"`)
-                    bvsult = fillstrhex(bvsult[1], -1)
-                    writedata('0E', 1, 'hex')
-                    writedata(bvsult.lent, 1, 'int')
-                    writedata(bvsult.bin, bvsult.lent, 'bin') 
+                    if (bvsult_ty[gj_num] == 'k') {
+                        bvsult = fillstrhex(bvsult[1], 128)
+                        writedata(bvsult.bin, 128, 'bin') 
+                    } else {
+                        bvsult = fillstrhex(bvsult[1], -1)
+                        writedata('0E', 1, 'hex')
+                        writedata(bvsult.lent, 1, 'int')
+                        writedata(bvsult.bin, bvsult.lent, 'bin')
+                    }
                 break;
 
                 default:
@@ -565,7 +623,7 @@ function compilecs(txtcs) {
 function cleotypesearch(txtcs) {
     if (txtcs === '') {return -1}
     var txtcsb2 = -1
-    var txtcsb = txtcs.replace(' ', '')
+    var txtcsb = txtcs.replaceAll(' ', '')
     if (txtcsb == `{$CLEO.csi}`) {
         txtcsb2 = 'csi'
     } else {
@@ -913,6 +971,36 @@ function hidecomment(vi, vi1, vi2) {
         }
     })
     return vic2 
+}
+
+// space fix
+function strspacefix(vi, vi1, vi2) {
+    vi = vi.split('')
+    var vi_true = false
+    var vic2 = ''
+    vi.forEach(vic => {
+        if (vi_true == true) {
+            if (vic == `"` || vic == `'`) {
+                vi_true = false
+            } else {
+                vic = replcstr(vic, vi1, vi2)
+            }
+        } else {
+            if (vic == `"` || vic == `'`) {
+                vi_true = true
+            }
+        }
+        vic2 = vic2 + vic
+    })
+    return vic2
+}
+
+// replace string
+function replcstr(vi, vi2, vi3) {
+    if (vi == vi2) {
+        return vi3
+    }
+    return vi
 }
 
 // Get Float from string
