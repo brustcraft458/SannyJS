@@ -2,6 +2,9 @@
 
 It's been years sanny builder never released for android. I'm dedicated to rebuilding Sanny Compiler for android, So that there are no more limitations of Android Cleo Coders to make everything
 
+## Information
+this is a private build, so the source code is not shared
+
 ## Features
 - support local variable
 - support int / float
@@ -13,9 +16,10 @@ It's been years sanny builder never released for android. I'm dedicated to rebui
 - support models name
 - support compiler sytank mode (csa, csi, cs)
 - support strings
+- support if then else end
 
 ## Release
-Comingsoon
+
 
 ## Credits
 
