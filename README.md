@@ -14,12 +14,11 @@ this is a private build, so the source code is not shared
 - support global var names
 - support keywords
 - support models name
-- support compiler sytank mode (csa, csi, cs)
+- support compiler sytank mode (csa, csi)
 - support strings
 - support if then else end
-
-## Release
-
+- support constant alias
+- added opcode search
 
 ## Credits
 
