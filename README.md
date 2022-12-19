@@ -14,7 +14,7 @@ this is a private build, so the source code is not shared
 - support global var names
 - support keywords
 - support models name
-- support compiler sytank mode (csa, csi)
+- support compiler sytank mode (csa, csi, cs)
 - support strings
 - support if then else end
 - support constant alias
