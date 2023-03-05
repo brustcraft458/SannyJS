@@ -9,6 +9,10 @@ Remake for Cleo Compiler
 ## Release
 Comingsoon
 
+## How to use?
+- install nodejs
+- run on terminal "node testcmp.js"
+
 ## Credits
 
 the GTA modding community.
