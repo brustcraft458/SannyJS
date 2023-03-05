@@ -1,18 +1,10 @@
 # SannyJS Cleo Compiler
 
-It's been years sanny builder never released for android. I'm dedicated to rebuilding Sanny Compiler for android, So that there are no more limitations of Android Cleo Coders to make everything
+Remake for Cleo Compiler
 
 ## Features
-- support local variable
-- support int / float
-- all opcodes loaded from sascm
-- support labels
-- support multi conditions
-- support global var names
-- support keywords
-- support models name
-- support compiler sytank mode (csa, csi, cs)
-- support strings
+- support Classes
+- support Models name
 
 ## Release
 Comingsoon
