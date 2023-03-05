@@ -1,0 +1,11 @@
+{$CLEO .cs}
+0000:
+
+{$INCLUDE scriptinc2.txt}
+
+:create
+Actor.StorePos($PLAYER_ACTOR, 1@, 2@, 3@)
+2@ += 2.0
+7@ = Car.Create(#ADMIRAL, 1@, 2@, 3@)
+Car.RemoveReferences(7@)
+end_thread

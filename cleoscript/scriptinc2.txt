@@ -1,0 +1,5 @@
+Model.Load(#ADMIRAL)
+:load
+wait 0
+if Model.Available(#ADMIRAL)
+jf @load
