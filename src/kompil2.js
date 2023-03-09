@@ -671,6 +671,62 @@ function opcty_isdat(str) {
     }
 }
 
+// Scanning Datatype
+function datacomp_scan(str, dline) {
+    var stend = str.length - 1
+
+    // Variable
+    var stsearch = str.search('@')
+    if (stsearch != -1) {
+        switch (stsearch) {
+            case 0:
+                // Label Jump
+            break;
+            case stend:
+                // Local Variable
+                var stdat = str.slice(0, stend)
+                if (isNaN(stdat)) {throw {'err': 'err_var_inde', 'line': dline}}
+                stdat = parseInt(stdat)
+            return {'ty': 'var', 'dat': stdat};
+        
+            default:
+            throw {'err': 'err_var_inde', 'line': dline};
+        }
+    }
+    
+    // Float or Integer
+    var dregex = new RegExp("(\\d+)(.|)(\\d+)", '').exec(str)
+    if (dregex != null) {
+        var stdat = str
+        if (dregex[2] == '.') {
+            // Float
+            if (isNaN(stdat)) {throw {'err': 'err_flt_not', 'line': dline}}
+            stdat = parseFloat(stdat)
+            return {'ty': 'flt', 'dat': stdat}
+        } else {
+            // Integer
+            if (isNaN(stdat)) {throw {'err': 'err_int_not', 'line': dline}}
+            stdat = parseInt(stdat)
+            return {'ty': 'int', 'dat': stdat}
+        }
+    }
+
+    return {'ty': 'str', 'dat': str}
+}
+
+function string_mixno(str, str2) {
+    var stret = '_'
+    var stret2 = '_'
+    if (typeof str == 'string') {
+        stret = str
+    }
+    if (typeof str2 == 'string') {
+        stret2 = str2
+    }
+    
+    return stret + stret2
+}
+
 function array_combin(str) {
     var str2 = []
     str = str2.concat(...str)
@@ -845,11 +901,15 @@ function spruce_cleo(filecmp) {
             if (estr == -2) {throw {'err': 'err_str_blk', 'line': line}}
             
             for (let step = 0; step < estr.length; step++) {
+                // Classes to Opcode
                 var evdt = classies(estr[step], line, step)
-                if (evdt[0] == true) {estr = evdt[1]; break}
+                if (evdt != -1) {estr = evdt; break}
+                // Math Operator to Opcode
+                evdt = mathopr(estr[step], line, step)
+                if (evdt != -1) {estr = evdt; break}
 
                 // Symbol Translate
-                estr[step] = symbolies(estr[step], line)
+                estr[step] = symbolies(estr[step], line, step)
             }
 
             if (typeof estr != 'string') {
@@ -899,6 +959,7 @@ function spruce_cleo(filecmp) {
             var cldat = dats.Component()
             if (cldat == -1 || cldat == -2) {throw {'err': 'err_clas_datr', 'line': dline}}
             var clhead = dats.ClassHead().toUpperCase()
+            var clhead2 = dats.ClassHead().replaceAll('.', '_')
 
             // Find Opcode from Classes
             dats.cid = memt_clast.indexOf(clhead)
@@ -909,31 +970,57 @@ function spruce_cleo(filecmp) {
 
             switch (cltype.type) {
                 case 'left':
-                    str += `${ctres} ${symbolies(cldat[0], dline)} ${cltype.math} ${cltype.var}`
+                    str += `${ctres} ${clhead2} ${symbolies(cldat[0], dline)} ${cltype.math} ${cltype.var}`
                 break;
                 case 'right':
-                    str += `${ctres} ${cltype.var} ${cltype.math}`
+                    str += `${ctres} ${cltype.var} ${clhead2} ${cltype.math}`
                     for (let cv = 0; cv < cldat.length; cv++) {
                         str += ` ${symbolies(cldat[cv], dline)}`
                     }
                 break;
             
                 default:
-                    str += `${ctres}`
+                    str += `${ctres} ${clhead2}`
                     for (let cv = 0; cv < cldat.length; cv++) {
                         str += ` ${symbolies(cldat[cv], dline)}`
                     }
                 break;
             }
 
-            return [true, str]
+            return str
         }
 
-        return [false]
+        return -1
+    }
+
+    // Translate Math Operator to Opcode
+    function mathopr(str, dline, dstep) {
+        // In Progress
+        var clret = ''
+        var clopc = ''
+        switch (str) {
+            case '+=':
+                var cldat = datacomp_scan(estr[dstep + 1], dline)
+                console.log('opr', cldat)
+            break;
+            case '-=':
+            break;
+            case '=':
+            break;
+            case '==':
+            break;
+        
+            default:
+            return -1;
+        }
+        if ((empty_yet(estr[dstep - 1]) || empty_yet(estr[dstep + 1])) || (!empty_yet(estr[dstep + 2]) && !empty_yet(estr[dstep + 3]))) {
+            throw {'err': 'err_matop_not', 'line': dline}
+        }
+        return str
     }
     
     // Transalate Symbol
-    function symbolies(str, dline) {
+    function symbolies(str, dline, dstep) {
         switch (str[0]) {
             case '#':
                 // ModelsID
@@ -947,6 +1034,11 @@ function spruce_cleo(filecmp) {
             break;
 
             default:
+                if (dstep == 0) {
+                    // keyword to opcode
+                    var lid = memt_keyw.indexOf(str.toLowerCase())
+                    if (lid != -1) {return `${keyw_opc[lid]} ${str}`}
+                }
             break;
         }
 
