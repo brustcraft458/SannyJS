@@ -675,25 +675,67 @@ function opcty_isdat(str) {
 function datacomp_scan(str, dline) {
     var stend = str.length - 1
 
-    // Variable
-    var stsearch = str.search('@')
+    // Variable & Global Variable
+    var stsearch = str.search('(\\@)|(\\$)')
     if (stsearch != -1) {
-        switch (stsearch) {
-            case 0:
-                // Label Jump
-            break;
-            case stend:
-                // Local Variable
-                var stdat = str.slice(0, stend)
-                if (isNaN(stdat)) {throw {'err': 'err_var_inde', 'line': dline}}
-                stdat = parseInt(stdat)
-            return {'ty': 'var', 'dat': stdat};
-        
-            default:
-            throw {'err': 'err_var_inde', 'line': dline};
+        if (str[stsearch] == '@') {
+            switch (stsearch) {
+                case 0:
+                    // Label Jump
+                    var stdat = str.slice(1, str.length).toUpperCase()
+                return {'ty': 'jmp', 'dat': stdat};
+                case stend:
+                    // Local Variable
+                    var stdat = str.slice(0, stend)
+                    if (isNaN(stdat)) {throw {'err': 'err_var_inde', 'line': dline}}
+                    stdat = parseInt(stdat)
+                return {'ty': 'var', 'dat': stdat};
+            
+                default:
+                throw {'err': 'err_var_inde', 'line': dline};
+            }
+        } else {
+            // Global Variable
+            if (stsearch == 0) {
+                return {'ty': 'varg', 'dat': stdat}
+            }
+            throw {'err': 'err_varg_not', 'line': dline};
         }
     }
     
+    // Strings Long & Short
+    var stsearch = str.search(`(")|(')`)
+    if (stsearch != -1) {
+        // Long
+        if (str[0] == '"' && str[stend] == '"') {
+            return {'ty': 'stril', 'dat': str.slice(1, stend)}
+        }
+        // Short
+        if (str[0] == `'` && str[stend] == `'`) {
+            return {'ty': 'strht', 'dat': str.slice(1, stend)}
+        }
+
+        throw {'err': 'err_str_not', 'line': dline}
+    }
+
+    // Opcode & Label
+    var stsearch = str.search(':')
+    if (stsearch != -1) {
+        switch (stsearch) {
+            case 0:
+                // Label Target
+                var stdat = str.slice(1, str.length).toUpperCase()
+            return {'ty': 'labl', 'dat': stdat};
+            case stend:
+                // Opcode
+                var stdat = str.slice(0, stend).toUpperCase()
+            return {'ty': 'opc', 'dat': stdat};
+
+            default:
+            throw {'err': 'err_colon_not', 'line': dline};
+        }
+    }
+
     // Float or Integer
     var dregex = new RegExp("(\\d+)(.|)(\\d+)", '').exec(str)
     if (dregex != null) {
@@ -973,7 +1015,7 @@ function spruce_cleo(filecmp) {
                     str += `${ctres} ${clhead2} ${symbolies(cldat[0], dline)} ${cltype.math} ${cltype.var}`
                 break;
                 case 'right':
-                    str += `${ctres} ${cltype.var} ${clhead2} ${cltype.math}`
+                    str += `${ctres} ${cltype.var} ${cltype.math} ${clhead2}`
                     for (let cv = 0; cv < cldat.length; cv++) {
                         str += ` ${symbolies(cldat[cv], dline)}`
                     }
@@ -995,28 +1037,49 @@ function spruce_cleo(filecmp) {
 
     // Translate Math Operator to Opcode
     function mathopr(str, dline, dstep) {
-        // In Progress
-        var clret = ''
-        var clopc = ''
+        var cdata = estr[dstep + 1]
+        var cvariable = estr[dstep - 1]
+        if (empty_yet(cdata) || empty_yet(cvariable)) {return -1}
+
         switch (str) {
             case '+=':
-                var cldat = datacomp_scan(estr[dstep + 1], dline)
-                console.log('opr', cldat)
+                var cld = datacomp_scan(cvariable, dline)
+                var cld2 = datacomp_scan(cdata, dline)
+                if (cld.ty == 'var') {return mathopc(cld2.ty, {'int': '000A:', 'flt': '000B:'})}
+                if (cld.ty == 'varg') {return mathopc(cld2.ty, {'int': '0008:', 'flt': '0009:'})}
             break;
             case '-=':
+                var cld = datacomp_scan(cvariable, dline)
+                var cld2 = datacomp_scan(cdata, dline)
+                if (cld.ty == 'var') {return mathopc(cld2.ty, {'int': '000E:', 'flt': '000F:'})}
+                if (cld.ty == 'varg') {return mathopc(cld2.ty, {'int': '000C:', 'flt': '000D:'})}
             break;
             case '=':
-            break;
-            case '==':
+                if (classies(cdata, dline, dstep) != -1) {break}
+                var cld = datacomp_scan(cvariable, dline)
+                var cld2 = datacomp_scan(cdata, dline)
+                if (cld.ty == 'var') {return mathopc(cld2.ty, {'int': '0006:', 'flt': '0007:'})}
+                if (cld.ty == 'varg') {return mathopc(cld2.ty, {'int': '0004:', 'flt': '0005:'})}
             break;
         
             default:
             return -1;
         }
-        if ((empty_yet(estr[dstep - 1]) || empty_yet(estr[dstep + 1])) || (!empty_yet(estr[dstep + 2]) && !empty_yet(estr[dstep + 3]))) {
-            throw {'err': 'err_matop_not', 'line': dline}
+
+        function mathopc(etype, eopc) {
+            switch (etype) {
+                case 'int':
+                return `${eopc.int} ${cvariable} ${str} ${cdata}`;
+                case 'flt':
+                return `${eopc.flt} ${cvariable} ${str} ${cdata}`;
+            
+                default:
+                throw {'err': 'err_matop_datip', 'line': dline};
+            }
         }
-        return str
+
+        // Ending
+        return -1
     }
     
     // Transalate Symbol
