@@ -5,6 +5,8 @@ Remake for Cleo Compiler
 ## Features
 - support Classes
 - support Models name
+- support Keywords
+- support Math Operator
 
 ## Release
 Comingsoon
