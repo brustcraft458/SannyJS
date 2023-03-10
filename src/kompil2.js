@@ -905,7 +905,6 @@ function cleo_typescan(datatx, filename, firstscan, curline) {
 }
 
 function spruce_cleo(filecmp) {
-    const dtype = {'Default': 0, 'String': 1, 'StringShort': 2, 'Number': 3, 'Opcode': 4, 'Buffer': 5}
     if (typeof filecmp == 'undefined') {
         var filecmp = memt_datcah.data
         memt_datcah.data = null
@@ -920,6 +919,7 @@ function spruce_cleo(filecmp) {
         var filecmlin = filecmp[line]
         lbrk: {
             var estr = ''
+            var isopnot = false
             if (filecmlin.type == 'inc') {
                 // Compiling Imported file
                 try {
@@ -943,15 +943,22 @@ function spruce_cleo(filecmp) {
             if (estr == -2) {throw {'err': 'err_str_blk', 'line': line}}
             
             for (let step = 0; step < estr.length; step++) {
-                // Classes to Opcode
-                var evdt = classies(estr[step], line, step)
-                if (evdt != -1) {estr = evdt; break}
-                // Math Operator to Opcode
-                evdt = mathopr(estr[step], line, step)
-                if (evdt != -1) {estr = evdt; break}
+                cnts: {
+                    if (estr[step].toLowerCase() == 'not') {
+                        // fix not operation
+                        estr.splice(step, 1)
+                        isopnot = true
+                    }
+                    // Classes to Opcode
+                    var evdt = classies(estr[step], line, step)
+                    if (evdt != -1) {estr = evdt; break}
+                    // Math Operator to Opcode
+                    evdt = mathopr(estr[step], line, step)
+                    if (evdt != -1) {estr = evdt; break}
 
-                // Symbol Translate
-                estr[step] = symbolies(estr[step], line, step)
+                    // Symbol Translate
+                    estr[step] = symbolies(estr[step], line, step)
+                }
             }
 
             if (typeof estr != 'string') {
@@ -993,8 +1000,8 @@ function spruce_cleo(filecmp) {
             var ifjmp = estr[dstep - 1]
             if (typeof ifjmp != 'undefined') {
                 ifjmp = ifjmp.toLowerCase()
-                if (ifjmp == 'if') {
-                    str = 'if\n'
+                if (ifjmp == '00d6: if') {
+                    str = `${ifjmp}\n`
                 }
             }
             // Classes To Opcode
@@ -1009,6 +1016,9 @@ function spruce_cleo(filecmp) {
             var cltype = dats.ClassType()
             var ctres = clast_topc[dats.cid][cltype.type]
             if (typeof ctres == 'undefined') {throw {'err': 'err_clas_inva', 'line': dline}}
+            if (isopnot == true) {
+                ctres = `8${ctres.slice(1, ctres.length)} not`
+            }
 
             switch (cltype.type) {
                 case 'left':
@@ -1055,7 +1065,7 @@ function spruce_cleo(filecmp) {
                 if (cld.ty == 'varg') {return mathopc(cld2.ty, {'int': '000C:', 'flt': '000D:'})}
             break;
             case '=':
-                if (classies(cdata, dline, dstep) != -1) {break}
+                if (cdata.search('(.*)(\\()') != -1) {break}
                 var cld = datacomp_scan(cvariable, dline)
                 var cld2 = datacomp_scan(cdata, dline)
                 if (cld.ty == 'var') {return mathopc(cld2.ty, {'int': '0006:', 'flt': '0007:'})}
