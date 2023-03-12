@@ -687,19 +687,19 @@ function datacomp_scan(str, dline) {
                 case stend:
                     // Local Variable
                     var stdat = str.slice(0, stend)
-                    if (isNaN(stdat)) {throw {'err': 'err_var_inde', 'line': dline}}
+                    if (isNaN(stdat)) {throw {'err': 'err_var_inde', 'line': dline, 'data': str}}
                     stdat = parseInt(stdat)
                 return {'ty': 'var', 'dat': stdat};
             
                 default:
-                throw {'err': 'err_var_inde', 'line': dline};
+                throw {'err': 'err_var_inde', 'line': dline, 'data': str};
             }
         } else {
             // Global Variable
             if (stsearch == 0) {
                 return {'ty': 'varg', 'dat': stdat}
             }
-            throw {'err': 'err_varg_not', 'line': dline};
+            throw {'err': 'err_varg_not', 'line': dline, 'data': str};
         }
     }
     
@@ -715,7 +715,7 @@ function datacomp_scan(str, dline) {
             return {'ty': 'strht', 'dat': str.slice(1, stend)}
         }
 
-        throw {'err': 'err_str_not', 'line': dline}
+        throw {'err': 'err_str_not', 'line': dline, 'data': str}
     }
 
     // Opcode & Label
@@ -732,7 +732,7 @@ function datacomp_scan(str, dline) {
             return {'ty': 'opc', 'dat': stdat};
 
             default:
-            throw {'err': 'err_colon_not', 'line': dline};
+            throw {'err': 'err_colon_not', 'line': dline, 'data': str};
         }
     }
 
@@ -742,12 +742,12 @@ function datacomp_scan(str, dline) {
         var stdat = str
         if (dregex[2] == '.') {
             // Float
-            if (isNaN(stdat)) {throw {'err': 'err_flt_not', 'line': dline}}
+            if (isNaN(stdat)) {throw {'err': 'err_flt_not', 'line': dline, 'data': str}}
             stdat = parseFloat(stdat)
             return {'ty': 'flt', 'dat': stdat}
         } else {
             // Integer
-            if (isNaN(stdat)) {throw {'err': 'err_int_not', 'line': dline}}
+            if (isNaN(stdat)) {throw {'err': 'err_int_not', 'line': dline, 'data': str}}
             stdat = parseInt(stdat)
             return {'ty': 'int', 'dat': stdat}
         }
@@ -773,6 +773,17 @@ function array_combin(str) {
     var str2 = []
     str = str2.concat(...str)
     return str
+}
+
+// Sannydata Search
+function memfind_opc(str) {
+    if (str[0] == '8') {
+        str = `0${str.slice(1 ,str.length)}`
+    }
+    var oid = memt_opc.indexOf(str)
+    if (oid == -1) {return -1}
+
+    return oid
 }
 
 // Scanning data
@@ -875,7 +886,7 @@ function cleo_typescan(datatx, filename, firstscan, curline) {
                     sinclude = {'type': 'inc', 'name': sdinc.name, 'dat': sdinc.data}
                 } catch(e) {
                     if (typeof e.err != 'undefined') {
-                        throw {'err': e.err, 'filename': str[1], 'incname': e.incname, 'line': e.line}
+                        throw {'err': e.err, 'filename': str[1], 'incname': e.incname, 'line': e.line, 'data': e.data}
                     } else {
                         throw {'err': e, 'filename': filename, 'incname': str[1], 'line': sline}
                     }
@@ -927,9 +938,9 @@ function spruce_cleo(filecmp) {
                 } catch(e) {
                     if (typeof e.err != 'undefined') {
                         if (typeof e.name == 'string') {
-                            throw {'err': e.err, 'line': e.line, 'name': e.name}
+                            throw {'err': e.err, 'line': e.line, 'data':e.data, 'name': e.name}
                         } else {
-                            throw {'err': e.err, 'line': e.line, 'name': filecmlin.name}
+                            throw {'err': e.err, 'line': e.line, 'data':e.data, 'name': filecmlin.name}
                         }
                     } else {
                         throw {'err': e, 'line': line, 'name': filecmlin.name}
@@ -943,22 +954,29 @@ function spruce_cleo(filecmp) {
             if (estr == -2) {throw {'err': 'err_str_blk', 'line': line}}
             
             for (let step = 0; step < estr.length; step++) {
-                cnts: {
-                    if (estr[step].toLowerCase() == 'not') {
-                        // fix not operation
-                        estr.splice(step, 1)
-                        isopnot = true
-                    }
-                    // Classes to Opcode
-                    var evdt = classies(estr[step], line, step)
-                    if (evdt != -1) {estr = evdt; break}
-                    // Math Operator to Opcode
-                    evdt = mathopr(estr[step], line, step)
-                    if (evdt != -1) {estr = evdt; break}
-
-                    // Symbol Translate
-                    estr[step] = symbolies(estr[step], line, step)
+                if (estr[step].toLowerCase() == 'not') {
+                    // fix not operation
+                    estr.splice(step, 1)
+                    isopnot = true
                 }
+                if (step == 0) {
+                    var evdt = estr[step]
+                    if (evdt.search(':') == evdt.length - 1) {
+                        // only opcode
+                        var oid = memfind_opc(evdt.toUpperCase())
+                        if (oid == -1) {throw {'err': 'err_opc_cod', 'line': line, 'data': evdt}}
+                        break
+                    }
+                }
+                // Classes to Opcode
+                var evdt = classies(estr[step], line, step)
+                if (evdt != -1) {estr = evdt; break}
+                // Math Operator to Opcode
+                evdt = mathopr(estr[step], line, step)
+                if (evdt != -1) {estr = evdt; break}
+
+                // Symbol Translate
+                estr[step] = symbolies(estr[step], line, step)
             }
 
             if (typeof estr != 'string') {
@@ -991,7 +1009,7 @@ function spruce_cleo(filecmp) {
 
         if (str.search('(.*)(\\()') != -1) {
             dats.data = clasi_regex.exec(str)
-            if (dats.data == null) {throw {'err': 'err_clas_inva', 'line': dline}}
+            if (dats.data == null) {throw {'err': 'err_clas_inva', 'line': dline, 'data': str}}
         }
 
         if (dats.data != null) {
@@ -1006,13 +1024,13 @@ function spruce_cleo(filecmp) {
             }
             // Classes To Opcode
             var cldat = dats.Component()
-            if (cldat == -1 || cldat == -2) {throw {'err': 'err_clas_datr', 'line': dline}}
+            if (cldat == -1 || cldat == -2) {throw {'err': 'err_clas_datr', 'line': dline, 'data': dats.data}}
             var clhead = dats.ClassHead().toUpperCase()
             var clhead2 = dats.ClassHead().replaceAll('.', '_')
 
             // Find Opcode from Classes
             dats.cid = memt_clast.indexOf(clhead)
-            if (dats.cid == -1) {throw {'err': 'err_clas_not', 'line': dline}}
+            if (dats.cid == -1) {throw {'err': 'err_clas_not', 'line': dline, 'data': dats.ClassHead()}}
             var cltype = dats.ClassType()
             var ctres = clast_topc[dats.cid][cltype.type]
             if (typeof ctres == 'undefined') {throw {'err': 'err_clas_inva', 'line': dline}}
@@ -1098,7 +1116,7 @@ function spruce_cleo(filecmp) {
             case '#':
                 // ModelsID
                 var lid = memt_modelid.indexOf(str.toUpperCase())
-                if (lid == -1) {throw {'err': 'err_molid_not', 'line': dline}}
+                if (lid == -1) {throw {'err': 'err_molid_not', 'line': dline, 'data': str}}
             return `${modelid_targ[lid]}`;
             case '$':
                 // Global Variable
