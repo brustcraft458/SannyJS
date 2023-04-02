@@ -30,6 +30,8 @@ const scriptpath = 'cleoscript'
 dataread = fs.readFileSync(`${scriptpath}/scriptes.txt`, 'ascii')
 var dinc = sanjs.cleo_typescan(dataread, 'scriptes', true, -1)
 dinc = sanjs.spruce_cleo()
-
 console.log(dinc)
+dinc = sanjs.lowcompile_cleo(dinc)
+
+//console.log(dinc)
 //console.log(JSON.stringify(dinc, null, 4))
