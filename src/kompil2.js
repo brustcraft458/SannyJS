@@ -43,6 +43,11 @@ var consk_str = []
 var memt_varg = []
 var varg_targ = []
 
+// memg global variable
+var memg_vargl = []
+var vargl_targ = []
+var vargl_num = 0
+
 // mem models
 var memt_modelid = []
 var modelid_targ = []
@@ -51,15 +56,28 @@ var modelid_targ = []
 var memt_clast = []
 var clast_topc = []
 
+// memg label
+var memg_labl = []
+var labl_targ = []
+var labl_stadr = 0
+
 // cahche data
 var memt_datcah = {}
 
 // Module Data
-module.exports = {loadsan, loadjavfunc, spruce_cleo, cleo_typescan, reset_datcah};
+module.exports = {loadsan, loadjavfunc, spruce_cleo, lowcompile_cleo, cleo_typescan, reset_datcah};
 
 // debug
-function reset_datcah() {
-    memt_datcah = null 
+function reset_datcah(isdatcah) {
+    if (isdatcah) {
+        memt_datcah = null
+    }
+    memg_labl = []
+    labl_targ = []
+    labl_stadr = 0
+    memg_vargl = []
+    vargl_targ = []
+    vargl_num = 0
 }
 
 // Assign java Func
@@ -697,6 +715,8 @@ function datacomp_scan(str, dline) {
         } else {
             // Global Variable
             if (stsearch == 0) {
+                var stdat = str.slice(1, str.length)
+                stdat = parseInt(stdat)
                 return {'ty': 'varg', 'dat': stdat}
             }
             throw {'err': 'err_varg_not', 'line': dline, 'data': str};
@@ -738,6 +758,9 @@ function datacomp_scan(str, dline) {
 
     // Float or Integer
     var dregex = new RegExp("(\\d+)(.|)(\\d+)", '').exec(str)
+    if (dregex == null) {
+        dregex = new RegExp("(\\d+)", '').exec(str)
+    }
     if (dregex != null) {
         var stdat = str
         if (dregex[2] == '.') {
@@ -918,12 +941,13 @@ function cleo_typescan(datatx, filename, firstscan, curline) {
 function spruce_cleo(filecmp) {
     if (typeof filecmp == 'undefined') {
         var filecmp = memt_datcah.data
-        memt_datcah.data = null
+        reset_datcah(true)
+        memg_vargl = memt_varg
+        vargl_targ = varg_targ
     }
 
     var filebuf = []
     var clasi_regex = new RegExp("(^.)(\\w+)(.)(\\w+)(\\()(.*)(\\))", '')
-    memt_datcah = null
 
     // Compiling
     for (let line = 0; line < filecmp.length; line++) {
@@ -1120,8 +1144,26 @@ function spruce_cleo(filecmp) {
             return `${modelid_targ[lid]}`;
             case '$':
                 // Global Variable
-                var lid = memt_varg.indexOf(str.slice(1, str.length).toUpperCase())
-                if (lid != -1) {return `$${varg_targ[lid]}`}
+                var lstr = str.slice(1, str.length).toUpperCase()
+                var lid = memg_vargl.indexOf(lstr)
+                if (lid == -1) {
+                    // New Global Variable
+                    if (!isNaN(lstr) && vargl_num == 0) {
+                        vargl_num = parseInt(lstr)
+                    } else {
+                        vargl_num++
+                    }
+                    var lnum = vargl_num
+                    memg_vargl.push(lstr)
+                    varg_targ.push(lnum)
+                    return `$${lnum}`
+                } else {
+                    var lnum = vargl_targ[lid]
+                    if (vargl_num == 0) {
+                        vargl_num = lnum
+                    }
+                    return `$${lnum}`
+                }
             break;
 
             default:
@@ -1136,10 +1178,109 @@ function spruce_cleo(filecmp) {
         return str
     }
 
-    // Compiling low end opcode
-    function lowcompile(str) {
+    return filecmp
+}
+
+// Compiling low end opcode
+function lowcompile_cleo(filecmp) {
+    for (let line = 0; line < filecmp.length; line++) {
+        switch (filecmp[line].type) {
+            case 'str':
+                // Code to Buffer
+                if (filecmp[line].dat == '') {
+                    // Skip
+                    filecmp[line] = Buffer.from('')
+                    break
+                }
+                if (filecmp[line].dat.search('\n') != -1) {
+                    // Multi
+                    var filecmlin = filecmp[line].dat.split('\n')
+                    for (let line2 = 0; line2 < filecmlin.length; line2++) {
+                        filecmlin[line2] = lowcompile(filecmlin[line2], line)
+                        labl_stadr += filecmlin[line2].length
+                    }
+
+                    filecmp[line] = array_combin(filecmlin)
+                } else {
+                    // Single
+                    var filecmlin = filecmp[line].dat
+                    filecmp[line] = lowcompile(filecmlin, line)
+                    labl_stadr += filecmlin[line].length
+                }
+            break;
+            case 'inc':
+                // Included File
+                filecmp[line] = lowcompile_cleo(filecmp[line].dat)
+                filecmp[line] = Buffer.concat(array_combin(filecmp[line]))
+            break;
         
+            default:
+                filecmp[line] = Buffer.from('')
+            break;
+        }
     }
+
+    // Compile to Buffer
+    function lowcompile(str, dline) {
+        str = str.split(' ')
+        var head = datacomp_scan(str[0], dline)
+        var component = str.splice(1)
+        switch (head.ty) {
+            case 'opc':
+                // Opcode
+                var opcid = memt_opc.indexOf(`${head.dat}:`)
+                var component2 = []
+                if (opcid == -1) {throw {'err': 'err_opc_cod', 'line': dline, 'data': `${head.dat}:`}}
+                
+                // Component
+                component = compextr(component, dline, opc_rdat[opcid])
+                console.log('all comp', head, component)
+            break;
+            case 'labl':
+                if (memg_labl.indexOf(head.dat) != -1) {
+                    throw {'err': 'err_lab_dupc', 'line': dline, 'data': `:${head.dat}`}
+                }
+                memg_labl.push(head.dat)
+                labl_targ.push(labl_stadr)
+            break;
+        
+            default:
+            break;
+        }
+
+        return Buffer.from('')
+    }
+
+    // Skip useless & extrac data type & relocating
+    function compextr(str, dline, rdat) {
+        var str2 = []
+        var dpos = 0
+        for (let stp = 0; stp < str.length; stp++) {
+            var comp = datacomp_scan(str[stp], dline)
+            if (comp.ty != 'str') {
+                var codat = rdat[dpos]
+                if (typeof codat == 'undefined') {throw {'err': 'err_opc_max', 'line': dline, 'data': compeskip(str.splice(0, stp), dline).join(' ')}}
+                comp = {...comp, 'tyd': codat.ty}
+                str2[codat.num - 1] = comp
+                dpos++
+            }
+        }
+
+        return str2
+    }
+
+    // Skip useless
+    function compeskip(str, dline) {
+        var str2 = []
+        for (let stp = 0; stp < str.length; stp++) {
+            if (datacomp_scan(str[stp], dline).ty != 'str') {
+                str2.push(str[stp])
+            }
+        }
+
+        return str2
+    }
+
 
     return filecmp
 }
